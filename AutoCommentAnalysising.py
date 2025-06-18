@@ -1,6 +1,6 @@
 
 #Tkinker python 改善方案生成
-
+#git test
 import json
 import pandas as pd
 from openai import OpenAI
