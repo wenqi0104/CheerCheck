@@ -6,13 +6,14 @@ from selenium.webdriver.support import expected_conditions as EC
 import json
 import time
 
+
 # 初始化浏览器驱动
 driver = webdriver.Chrome()  # 确保 ChromeDriver 在 PATH 中
 
 # 打开亚马逊登录页面
 driver.get('https://www.amazon.co.uk/ap/signin?openid.pape.max_auth_age=0&openid.return_to=https%3A%2F%2Fwww.amazon.co.uk%2Fref%3Dnav_signin&openid.identity=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.assoc_handle=gbflex&openid.mode=checkid_setup&openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0')
 
-
+ 
 # 等待页面加载
 # time.sleep(100)  # 增加延迟以确保页面加载完成
 # 找到用户名和密码输入框并输入信息
@@ -20,7 +21,7 @@ driver.find_element(By.ID, 'ap_email').send_keys('1299226721@qq.com')  # 替换�
 # 提交登录表单
 driver.find_element(By.ID, 'continue').click()
 
-driver.find_element(By.ID, 'ap_password').send_keys('WR11wr11')  # 替换为你的密码
+driver.find_element(By.ID, 'ap_password').send_keys('')  # 替换为你的密码
 driver.find_element(By.ID, 'signInSubmit').click()
 
 # 暂停脚本，等待手动完成验证码
