@@ -1,225 +1,148 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // 获取DOM元素
-    const generateButton = document.getElementById('generateButton');
-    const resultsSection = document.getElementById('resultsSection');
-    const resultsContent = document.getElementById('resultsContent');
-    const urlInput = document.getElementById('urlInput');
-    const fileInput = document.getElementById('fileInput');
-    const promptInput = document.getElementById('promptInput');
-    const promptCheckbox = document.getElementById('promptCheckbox');
-    const urlGroup = document.getElementById('urlGroup');
-    const fileGroup = document.getElementById('fileGroup');
-    const urlRadio = document.getElementById('urlRadio');
-    const fileRadio = document.getElementById('fileRadio');
-    const statusDiv = document.createElement('div');
-    statusDiv.id = 'status';
-    statusDiv.className = 'mt-3 alert alert-info';
-    document.querySelector('#cheerCheckForm').appendChild(statusDiv);
+// script.js
+document.addEventListener("DOMContentLoaded", () => {
+  // 输入源选择
+  const fileRadio = document.getElementById("fileRadio");
+  const urlRadio = document.getElementById("urlRadio");
+  // 文件/url文件上传组件
+  const fileGroup = document.getElementById("fileGroup");
+  const urlGroup = document.getElementById("urlGroup");
+  // 额外的prompt输入checkbox 和prompt input
+  const promptCheckbox = document.getElementById("promptCheckbox");
+  const promptGroup = document.getElementById("promptGroup");
+  // 文件输入
+  const fileInput = document.getElementById("fileInput");
+  // 生成结果按钮
+  const generateButton = document.getElementById("generateButton");
+  // 最后的结果展示区域，初始隐藏
+  const resultsSection = document.getElementById("resultsSection");
+  const resultsContent = document.getElementById("resultsContent");
 
-    // 数据源选择变化事件
-    [urlRadio, fileRadio].forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (this.id === 'urlRadio') {
-                urlGroup.style.display = 'block';
-                fileGroup.style.display = 'none';
-                fileInput.value = '';
-            } else {
-                urlGroup.style.display = 'none';
-                fileGroup.style.display = 'block';
-                urlInput.value = '';
-            }
-        });
-    });
+  // 切换数据源显示逻辑
+  fileRadio.addEventListener("change", () => {
+    fileGroup.style.display = "block";
+    urlGroup.style.display = "none";
+  });
 
-    // 提示词复选框变化事件
-    promptCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            document.getElementById('promptGroup').style.display = 'block';
-        } else {
-            document.getElementById('promptGroup').style.display = 'none';
-            promptInput.value = '';
-        }
-    });
+  urlRadio.addEventListener("change", () => {
+    fileGroup.style.display = "none";
+    urlGroup.style.display = "block";
+  });
 
-    // 生成按钮点击事件
-    generateButton.addEventListener('click', async function() {
-        // 验证输入
-        if (!validateInputs()) {
-            return;
-        }
-        
-        // 显示加载状态
-        showLoadingState();
-        
-        try {
-            let dataSource;
-            let data;
-            
-            // 确定数据源
-            if (urlRadio.checked) {
-                dataSource = 'url';
-                // 这里可以添加从URL获取数据的逻辑
-                data = { source: 'url', value: urlInput.value };
-            } else {
-                dataSource = 'file';
-                const file = fileInput.files[0];
-                data = await processFile(file);
-            }
-            
-            // 获取提示词（如果提供）
-            const prompt = promptCheckbox.checked ? promptInput.value : '';
-            
-            // 这里应该是调用API处理数据的逻辑
-            // 为了示例，我们模拟处理过程
-            await simulateProcessing(data, prompt);
-            
-            // 显示完成动画
-            showCompletionAnimation();
-            
-        } catch (error) {
-            showStatus(`处理过程中出错: ${error.message}`, 'alert-danger');
-        }
-    });
+  // 自定义提示词显示逻辑
+  promptCheckbox.addEventListener("change", () => {
+    promptGroup.style.display = promptCheckbox.checked ? "block" : "none";
+  });
 
-    // 输入验证
-    function validateInputs() {
-        let isValid = true;
-        
-        // 重置错误状态
-        urlInput.classList.remove('is-invalid');
-        fileInput.classList.remove('is-invalid');
-        
-        // 验证数据源
-        if (urlRadio.checked && !urlInput.value.trim()) {
-            urlInput.classList.add('is-invalid');
-            isValid = false;
-        } else if (fileRadio.checked && (!fileInput.files || fileInput.files.length === 0)) {
-            fileInput.classList.add('is-invalid');
-            isValid = false;
-        }
-        
-        return isValid;
+  // 生成改进意见按钮点击事件
+  generateButton.addEventListener("click", async () => {
+    // 检查是否选择了文件上传方式 并上传了文件
+    if (fileRadio.checked && fileInput.files.length === 0) {
+      alert("请上传一个文件！");
+      return;
     }
-    
-    // 处理文件
-    async function processFile(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            
-            reader.onload = (event) => {
-                try {
-                    let parsedData;
-                    
-                    if (file.name.endsWith('.json')) {
-                        parsedData = JSON.parse(event.target.result);
-                    } else if (file.name.endsWith('.csv')) {
-                        parsedData = parseCSV(event.target.result);
-                    } else {
-                        parsedData = parseExcel(event.target.result);
-                    }
-                    
-                    resolve({ 
-                        source: 'file', 
-                        value: parsedData,
-                        fileName: file.name
-                    });
-                } catch (error) {
-                    reject(error);
-                }
-            };
-            
-            if (file.name.endsWith('.json') || file.name.endsWith('.csv')) {
-                reader.readAsText(file);
-            } else {
-                reader.readAsArrayBuffer(file);
-            }
-        });
-    }
-    
-    // 解析CSV文件
-    function parseCSV(csvText) {
-        const lines = csvText.split('\n');
-        const headers = lines[0].split(',');
-        const result = [];
-        
-        for (let i = 1; i < lines.length; i++) {
-            const obj = {};
-            const currentLine = lines[i].split(',');
-            
-            for (let j = 0; j < headers.length; j++) {
-                obj[headers[j]] = currentLine[j];
-            }
-            
-            result.push(obj);
-        }
-        
-        return result;
-    }
-    
-    // 解析Excel文件
-    function parseExcel(arrayBuffer) {
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        return XLSX.utils.sheet_to_json(worksheet);
-    }
-    
-    // 模拟处理过程
-    async function simulateProcessing(data, prompt) {
-        return new Promise(resolve => {
-            setTimeout(() => {
-                // 这里应该是调用API处理数据的逻辑
-                // 现在只是模拟处理时间
-                resolve();
-            }, 2000);
-        });
-    }
-    
-    // 显示状态信息
-    function showStatus(message, type) {
-        statusDiv.textContent = message;
-        statusDiv.className = `mt-3 alert ${type}`;
-    }
-    
-    // 显示加载状态
-    function showLoadingState() {
-        resultsSection.style.display = 'block';
-        resultsContent.innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">加载中...</span>
-                </div>
-                <p class="mt-3 mb-0">正在分析评论数据并生成改进建议...</p>
-            </div>
+
+    // 显示加载动画 前端渲染结果展示区域
+    resultsSection.style.visibility = "visible";
+    resultsContent.innerHTML = `
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">加载中...</span>
+        </div>
+        <p class="mt-3 mb-0 fs-6">正在分析评论数据并生成改进建议...</p>
+      </div>
+    `;
+
+    try {
+      if (fileRadio.checked) {
+        // 处理本地文件上传
+        const file = fileInput.files[0];
+
+        // 调用 DeepSeek API 进行分析
+        const prompt = `
+          分析文件里面内容，分辨出每条意见内容，对部门员工的意见进行分类，
+          并且针对每一条意见给出一些建议。
+          最后把结果用表格形式输出出来，按照原文件中每条意见的顺序列出。
+          表格中的一列严格列出文档中的具体意见，另一列是简述意见内容。
         `;
-    }
-    
-    // 显示完成动画
-    function showCompletionAnimation() {
+        const analysisResult = await callDeepSeekAPI(file, prompt);
+
+        // 将结果生成 Excel 文件
+        const excelBlob = generateExcelFile(analysisResult);
+        downloadFile(excelBlob, "分析结果.xlsx");
+
+        // 更新结果展示区域
         resultsContent.innerHTML = `
-            <div class="animate-fadein text-center py-5">
-                <div class="display-4 text-success mb-4">
-                    <i class="bi bi-check-circle-fill"></i>
-                </div>
-                <h3 class="mb-3">处理完成！</h3>
-                <p class="lead">您的改进建议已准备就绪。</p>
-                <button id="newAnalysisBtn" class="btn btn-outline-primary btn-lg mt-4">
-                    <i class="bi bi-arrow-counterclockwise me-2"></i>新建分析
-                </button>
-            </div>
+          <div class="alert alert-success text-center" role="alert">
+            分析完成！结果已下载为 Excel 文件。
+          </div>
         `;
-        
-        document.getElementById('newAnalysisBtn').addEventListener('click', function() {
-            resultsSection.style.display = 'none';
-            urlInput.value = '';
-            fileInput.value = '';
-            promptInput.value = '';
-            promptCheckbox.checked = false;
-            document.getElementById('promptGroup').style.display = 'none';
-            urlRadio.checked = true;
-            urlGroup.style.display = 'block';
-            fileGroup.style.display = 'none';
-            statusDiv.textContent = '';
-        });
+      } else {
+        alert("目前仅支持本地文件上传方式！");
+      }
+    } catch (error) {
+      console.error("处理失败：", error);
+      resultsContent.innerHTML = `
+        <div class="alert alert-danger text-center" role="alert">
+          分析失败，请稍后重试。
+        </div>
+      `;
     }
+  });
+
+  // 读取文件内容为文本
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => resolve(event.target.result);
+      reader.onerror = (error) => reject(error);
+      reader.readAsText(file);
+    });
+  }
+
+  // 调用 DeepSeek API
+  async function callDeepSeekAPI(file, prompt) {
+    const apiUrl = "https://api.deepseek.com/analyze"; // 替换为实际 DeepSeek API 地址
+    const apiKey = "sk-7e8ab23cf1124fbb80502138fb3a888a########";
+    const formData = new FormData();
+    formData.append("model", "deepseek-chat");
+    formData.append("file", file);
+    formData.append("user_prompt", prompt);
+    formData.append("stream", false);
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("DeepSeek API 调用失败");
+    }
+
+    return response.json();
+  }
+
+  // 生成 Excel 文件
+  function generateExcelFile(data) {
+    const workbook = XLSX.utils.book_new();
+    const worksheetData = data.map((item) => ({
+      具体意见: item.originalOpinion,
+      简述意见内容: item.summary,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "分析结果");
+    return XLSX.write(workbook, { bookType: "xlsx", type: "blob" });
+  }
+
+  // 下载文件
+  function downloadFile(blob, filename) {
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
 });
