@@ -220,7 +220,8 @@ def filter_markdown_table(content: str) -> str:
     :return: 过滤后的 Markdown 表格内容
     """
     # 定义表格的起始和结束标志
-    table_start = "| 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |"
+    # table_start = "| 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |"
+    table_start = "|"
     table_end = "|"
 
     # 找到表格的起始位置
