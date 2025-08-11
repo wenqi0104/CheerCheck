@@ -411,7 +411,7 @@ def main(file_path, request_host, request_host2):
 if __name__ == "__main__":
     # access_token = "24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165####"
     request_host = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task?" \
-    "access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165"
+    "access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165######"
     request_host2 = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task/query?access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165"
 
     file_path = "Tool3/研发意见_test.pdf" 
