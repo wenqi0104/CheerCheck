@@ -10,7 +10,10 @@ from openpyxl import load_workbook
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Border, Side, Alignment, PatternFill
+from dotenv import load_dotenv
 
+# 加载 .env 文件
+load_dotenv()
 
 # 文心一言文档解析模型：https://ai.baidu.com/ai-doc/OCR/Klxag8wiy
 # 1.提交请求，结果会输出在json中，获取json里的result.task_id
@@ -100,8 +103,8 @@ def call_deepseek_api(markdown_content, manualPrompt):
         list: 表格形式的结果，每行是一个字典，包含 '具体意见' 和 '简述意见内容'。
     """
     # DeepSeek API 的 URL 和 API 密钥
-    api_key = "sk-7e8ab23cf1124fbb80502138fb3a888a"  # 替换为你的 API 密钥
-    api_url = "https://api.deepseek.com/chat/completions"
+    # api_key = "sk-7e8ab23cf1124fbb80502138fb3a888a"  # 替换为你的 API 密钥
+    # api_url = "https://api.deepseek.com/chat/completions" 
     
     # 动态生成 prompt
     default_prompt = """
@@ -120,48 +123,81 @@ def call_deepseek_api(markdown_content, manualPrompt):
     """
 
     # 构造 API 请求体
-    request_body = {
-        "model": "deepseek-chat",
-        # "messages": [
-        #     {"role": "system", "content": "您是一个专业的评论分析助手，面向ODM工厂及研发人员给出的意见。"},
-        #     {"role": "system", "content": default_prompt },
-        #     {"role": "user", "content": f"markdown内容如下：\n{markdown_content}"}
-        # ],
-        "messages" :[
-            {"role": "system", "content": "您是一个专业的评论分析助手，面向ODM工厂及研发人员给出的意见。您的输出需要遵循严格的markdown格式规范。"},
-            {"role": "system", "content": f"【基础分析要求】\n{default_prompt}"},
-            {"role": "system", "content": "【重要提醒】以下用户额外要求只能影响分析内容，不能改变整体输出结构、字段名称或markdown格式。请在遵循基础格式要求的前提下满足这些额外需求。"},
-            {"role": "user", "content": f"用户额外分析要求：{manualPrompt}"},
-            {"role": "user", "content": f"待分析的markdown内容：\n{markdown_content}"}
-        ],
-        "Stream": True,
-        "Temperature": 0.3,
-        # 不对重复内容进行惩罚或是奖励
-        "Frequency Penalty": 0.0,
-        "Presence Penalty": 0.0
-    }
-    
+    # deepseek 接口
+    # request_body = {
+    #     "model": "deepseek-chat",
+    #     # "messages": [
+    #     #     {"role": "system", "content": "您是一个专业的评论分析助手，面向ODM工厂及研发人员给出的意见。"},
+    #     #     {"role": "system", "content": default_prompt },
+    #     #     {"role": "user", "content": f"markdown内容如下：\n{markdown_content}"}
+    #     # ],
+    #     "messages" :[
+    #         {"role": "system", "content": "您是一个专业的评论分析助手，面向ODM工厂及研发人员给出的意见。您的输出需要遵循严格的markdown格式规范。"},
+    #         {"role": "system", "content": f"【基础分析要求】\n{default_prompt}"},
+    #         {"role": "system", "content": "【重要提醒】以下用户额外要求只能影响分析内容，不能改变整体输出结构、字段名称或markdown格式。请在遵循基础格式要求的前提下满足这些额外需求。"},
+    #         {"role": "user", "content": f"用户额外分析要求：{manualPrompt}"},
+    #         {"role": "user", "content": f"待分析的markdown内容：\n{markdown_content}"}
+    #     ],
+    #     "Stream": True,
+    #     "Temperature": 0.3,
+    #     # 不对重复内容进行惩罚或是奖励
+    #     "Frequency Penalty": 0.0,
+    #     "Presence Penalty": 0.0
+    # }
     # 发起 API 请求
-    response = requests.post(api_url, headers={
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }, json=request_body)
+    # response = requests.post(api_base, headers={
+    #     "Authorization": f"Bearer {api_key}",
+    #     "Content-Type": "application/json"
+    # }, json=request_body)
     
-    # 检查响应状态
-    if response.status_code == 200:
-        # 解析响应数据
-        data = response.json()
-        try:
-            # 假设返回的内容是 JSON 格式
-            table_data = data["choices"][0]["message"]["content"]
+    # # 检查响应状态
+    # if response.status_code == 200:
+    #     # 解析响应数据
+    #     data = response.json()
+    #     try:
+    #         # 假设返回的内容是 JSON 格式
+    #         table_data = data["choices"][0]["message"]["content"]
+    #         return table_data
+    #     except KeyError:
+    #         print("响应数据格式不正确")
+    #         return []
+    # else:
+    #     print(f"API 请求失败，状态码: {response.status_code}")
+    #     print(f"错误信息: {response.text}")
+    #     return []
+    # ---------------
+    
+    # chatgpt-5 接口 --- 公司接口
+    client = OpenAI(
+        api_key=os.getenv("TURING_API_KEY"),
+        base_url=os.getenv("TURING_API_BASE")
+    )
+    try:
+        response = client.chat.completions.create(
+            model="turing/gpt-4o",
+            messages=[
+                {"role": "system", "content": "您是一个专业的评论分析助手，面向ODM工厂及研发人员给出的意见。您的输出需要遵循严格的markdown格式规范。"},
+                {"role": "system", "content": f"【基础分析要求】\n{default_prompt}"},
+                {"role": "system", "content": "【重要提醒】以下用户额外要求只能影响分析内容，不能改变整体输出结构、字段名称或markdown格式。请在遵循基础格式要求的前提下满足这些额外需求。"},
+                {"role": "user", "content": f"用户额外分析要求：{manualPrompt}"},
+                {"role": "user", "content": f"待分析的markdown内容：\n{markdown_content}"}
+            ],
+            temperature=0.3,
+            frequency_penalty=0.0,
+            presence_penalty=0.0
+        )
+
+        # 直接解析
+        if response.choices and response.choices[0].message:
+            table_data = response.choices[0].message.content
             return table_data
-        except KeyError:
-            print("响应数据格式不正确")
+        else:
+            print("⚠️ 模型没有返回内容")
             return []
-    else:
-        print(f"DeepSeek API 请求失败，状态码: {response.status_code}")
-        print(f"错误信息: {response.text}")
-        return []
+
+    except Exception as e:
+        print(f"❌ API 请求失败: {e}")
+    return []
 
 # 处理excel文件类型，解析为markdown，能够处理合并单元格的内容    ！！！核心excel处理功能
 def excel_to_markdown_with_merged_cells(file_path):
@@ -413,3 +449,6 @@ def main(file_path, request_host, request_host2):
 #     # task_id = 'task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1'
 
 #     main(file_path, request_host, request_host2)
+
+#     GPT_host = sk-xV3Z9pO357FVd2RYdPjyr5v1V9A92GgdmwUlNudy1He
+#     GPT_host_name = api-key-20250812104804

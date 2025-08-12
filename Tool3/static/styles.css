@@ -220,6 +220,16 @@ footer {
     background-color: rgba(248, 249, 250, 0.9) !important;
 }
 
+/* markdown预览表格样式 */
+#resultsContent table {
+    background-color: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+}
+#resultsContent th {
+    background-color: #f8f9fa;
+}
+
 /* 响应式调整 */
 @media (max-width: 768px) {
     .main-container {

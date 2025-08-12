@@ -79,7 +79,7 @@ def process_data():
         else:
             print("未能生成表格结果。")
 
-        return jsonify({'suggestions': table_result})
+        return jsonify({'suggestions': filtered_table})
     except Exception as e:
         return jsonify({'error': f'生成建议失败: {str(e)}'}), 500
 
