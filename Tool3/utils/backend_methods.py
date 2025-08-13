@@ -12,8 +12,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, Border, Side, Alignment, PatternFill
 from dotenv import load_dotenv
 
-# 加载 .env 文件
-load_dotenv()
+
 
 # 文心一言文档解析模型：https://ai.baidu.com/ai-doc/OCR/Klxag8wiy
 # 1.提交请求，结果会输出在json中，获取json里的result.task_id
@@ -118,7 +117,7 @@ def call_deepseek_api(markdown_content, manualPrompt):
         - 严格按照以下格式：
             | 序号 | 具体意见 | 内容简述 | 分类 ｜ 改善建议 |
             其中，序号是指对应在原文中的意见序号，具体意见要严格列出文档中的具体意见。
-        - markdown表格中最后一行给出分析总结，分析输入的整体意见内容的数据特点，比如：常规问题占比、尖锐问题占比、高频意见、各类流程类型等，直接列在最后一行。
+        - 表格中最后一行给出分析总结，分析输入的整体意见内容的数据特点，比如：常规问题占比、尖锐问题占比、高频意见、各类流程类型等，直接列在最后一行。
     7. 仅给出markdown的内容，结果本身就是markdown格式，不用额外的解释说明。
     """
 
@@ -169,12 +168,17 @@ def call_deepseek_api(markdown_content, manualPrompt):
     
     # chatgpt-5 接口 --- 公司接口
     client = OpenAI(
-        api_key=os.getenv("TURING_API_KEY"),
-        base_url=os.getenv("TURING_API_BASE")
+        # 加载 .env 文件
+        # load_dotenv()
+        # api_key=os.getenv("TURING_API_KEY"),
+        # base_url=os.getenv("TURING_API_BASE")
+        api_key = 'sk-xV3Z9pO357FVd2RYdPjyr5v1V9A92GgdmwUlNudy1He',
+        base_url= 'https://live-turing.cn.llm.tcljd.com/api/v1'
     )
     try:
         response = client.chat.completions.create(
-            model="turing/gpt-4o",
+            # model="turing/gpt-4o",
+            model="turing/gpt-5",
             messages=[
                 {"role": "system", "content": "您是一个专业的评论分析助手，面向ODM工厂及研发人员给出的意见。您的输出需要遵循严格的markdown格式规范。"},
                 {"role": "system", "content": f"【基础分析要求】\n{default_prompt}"},
@@ -378,8 +382,11 @@ def markdown_to_excel_with_style(markdown_content: str, excel_file: str = "意�
 
     except Exception as e:
         print(f"转换文件时发生错误: {e}")
-# 主函数
-def main(file_path, request_host, request_host2):
+
+
+
+# 主函数,单元测试用
+# def main(file_path, request_host, request_host2):
  
     # Step 1: OCR 识别文件内容    
     # 拿到task id
@@ -392,7 +399,7 @@ def main(file_path, request_host, request_host2):
 
     #测试用task_id: 
     # task_id = 'task-yjSerT5twFZgcflRKk22gi3TQGZ0dWhp'
-    task_id = 'task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1'
+    # task_id = 'task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1'
     
 
     # # 用task id 拿markdown url
@@ -420,23 +427,23 @@ def main(file_path, request_host, request_host2):
     #     print("未能生成表格结果。")
 
     # Excel文件处理：
-    excel_path = '/Users/keyeee/develop/CheerCheck/Tool3/dataset.xlsx'  # Replace with your .docx file path
-    raw_text = excel_to_markdown_with_merged_cells(excel_path)
+    # excel_path = '/Users/keyeee/develop/CheerCheck/Tool3/dataset.xlsx'  # Replace with your .docx file path
+    # raw_text = excel_to_markdown_with_merged_cells(excel_path)
 
-    print('------------>等待结果生成中：')
-    table_result = call_deepseek_api(raw_text)
-    if table_result:
-        print('--------------------------------------')
-        print(table_result)
-        print('--------------------------------------')
-        filtered_table = filter_markdown_table(table_result)
-        print("表格结果:",filtered_table)
-        # 调用方法保存文件
-        save_markdown_to_file(filtered_table)
-        markdown_to_excel_with_style(filtered_table)
-        print('--------------------------------------')
-    else:
-        print("未能生成表格结果。")
+    # print('------------>等待结果生成中：')
+    # table_result = call_deepseek_api(raw_text)
+    # if table_result:
+    #     print('--------------------------------------')
+    #     print(table_result)
+    #     print('--------------------------------------')
+    #     filtered_table = filter_markdown_table(table_result)
+    #     print("表格结果:",filtered_table)
+    #     # 调用方法保存文件
+    #     save_markdown_to_file(filtered_table)
+    #     markdown_to_excel_with_style(filtered_table)
+    #     print('--------------------------------------')
+    # else:
+    #     print("未能生成表格结果。")
 
 
 # if __name__ == "__main__":

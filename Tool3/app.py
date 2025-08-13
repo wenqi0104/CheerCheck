@@ -84,4 +84,4 @@ def process_data():
         return jsonify({'error': f'生成建议失败: {str(e)}'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
