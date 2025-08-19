@@ -29,6 +29,37 @@ def process_data():
     # 临时存储文本数据（用于AI处理）
     raw_text = ""
 
+    # if data_source == 'url':
+    #     url = data.get('url')
+    #     if not url:
+    #         return jsonify({'error': 'URL 不能为空'}), 400
+    #     # 调用您已有的方法抓取网页评论（示例）
+    #     raw_text = backend_methods.scrape_comments_from_url(url)
+
+    # elif data_source == 'file':
+    #     if 'file' not in request.files:
+    #         return jsonify({'error': '未上传文件'}), 400
+    #     file = request.files['file']
+    #     if file.filename == '':
+    #         return jsonify({'error': '未选择文件'}), 400
+    #     if file and allowed_file(file.filename):
+
+    #         # 这里是保存文件的
+    #         filename = secure_filename(file.filename)
+    #         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    #         file.save(filepath)
+    #         # 输入源文件处理
+    #         raw_text = backend_methods.excel_to_markdown_with_merged_cells(filepath)
+
+    #         # 可选：处理完删除临时文件
+    #         os.remove(filepath)
+
+    #     else:
+    #         return jsonify({'error': '不支持的文件类型'}), 400
+
+    # else:
+    #     return jsonify({'error': '无效的数据来源'}), 400
+
     if data_source == 'url':
         url = data.get('url')
         if not url:
@@ -39,26 +70,57 @@ def process_data():
     elif data_source == 'file':
         if 'file' not in request.files:
             return jsonify({'error': '未上传文件'}), 400
+
         file = request.files['file']
         if file.filename == '':
             return jsonify({'error': '未选择文件'}), 400
-        if file and allowed_file(file.filename):
 
-            # 这里是保存文件的
+        if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            # 输入源文件处理
-            raw_text = backend_methods.excel_to_markdown_with_merged_cells(filepath)
 
-            # 可选：处理完删除临时文件
-            os.remove(filepath)
+            file_ext = filename.rsplit('.', 1)[1].lower()
+
+            try:
+                if file_ext in ['xls', 'xlsx']:
+                    # Excel 处理流程
+                    raw_text = backend_methods.excel_to_markdown_with_merged_cells(filepath)
+
+                elif file_ext == 'pdf':
+                    # PDF 处理流程
+                    request_host = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task?"
+                    request_host2 = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task/query?access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165"
+
+                    # Step 1: OCR 识别文件内容
+                    response = backend_methods.create_task(request_host, filepath, "")
+                    response_data = response.json()
+                    if "result" not in response_data or "task_id" not in response_data["result"]:
+                        return jsonify({'error': 'OCR 任务创建失败'}), 500
+                    task_id = response_data["result"]["task_id"]
+                    print('task_id:', task_id)
+
+                    # Step 2: 用 task_id 获取 markdown_url
+                    response2 = backend_methods.query_task(request_host2, task_id)
+                    response2_data = response2.json()
+                    if "result" not in response2_data or "markdown_url" not in response2_data["result"]:
+                        return jsonify({'error': '未获取到 markdown_url'}), 500
+                    markdown_url = response2_data["result"]["markdown_url"]
+                    print("markdown_url:", markdown_url)
+
+                    # Step 3: 下载并清洗 markdown 内容
+                    raw_text = backend_methods.fetch_and_clean_markdown(markdown_url)
+
+                else:
+                    return jsonify({'error': '不支持的文件类型'}), 400
+
+            finally:
+                # 确保删除临时文件
+                if os.path.exists(filepath):
+                    os.remove(filepath)
 
         else:
             return jsonify({'error': '不支持的文件类型'}), 400
-
-    else:
-        return jsonify({'error': '无效的数据来源'}), 400
 
     # 调用您的 AI 方法生成建议
     try:

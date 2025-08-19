@@ -115,8 +115,9 @@ def call_deepseek_api(markdown_content, manualPrompt):
     5. 如果没有尖锐问题，可以依照满意度分析列出最低满意度的那些意见。
     6. 输出格式要求：
         - 严格按照以下格式：
-            | 序号 | 具体意见 | 内容简述 | 分类 ｜ 改善建议 |
+            | 序号 | 具体意见 | 中文翻译 | 内容简述 | 分类 ｜ 改善建议 |
             其中，序号是指对应在原文中的意见序号，具体意见要严格列出文档中的具体意见。
+            仅当源数据为外语是添加此列，将“具体意见”翻译为中文。
         - 表格中最后一行给出分析总结，分析输入的整体意见内容的数据特点，比如：常规问题占比、尖锐问题占比、高频意见、各类流程类型等，直接列在最后一行。
     7. 仅给出markdown的内容，结果本身就是markdown格式，不用额外的解释说明。
     """
@@ -177,8 +178,8 @@ def call_deepseek_api(markdown_content, manualPrompt):
     )
     try:
         response = client.chat.completions.create(
-            # model="turing/gpt-4o",
-            model="turing/gpt-5",
+            model="turing/gpt-4o",
+            # model="turing/gpt-5",
             messages=[
                 {"role": "system", "content": "您是一个专业的评论分析助手，面向ODM工厂及研发人员给出的意见。您的输出需要遵循严格的markdown格式规范。"},
                 {"role": "system", "content": f"【基础分析要求】\n{default_prompt}"},
@@ -247,32 +248,81 @@ def excel_to_markdown_with_merged_cells(file_path):
     return markdown_content
 
 # 二次处理markdown内容
+# def filter_markdown_table(content: str) -> str:
+#     """
+#     从输入内容中提取符合 Markdown 表格格式的部分，并过滤掉异常内容。
+
+#     :param content: 原始内容字符串
+#     :return: 过滤后的 Markdown 表格内容
+#     """
+#     # 定义表格的起始和结束标志
+#     table_start = "| 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |"
+#     # table_start = "|"
+#     table_end = "|"
+
+#     # 找到表格的起始位置
+#     start_index = content.find(table_start)
+#     if start_index == -1:
+#         return "未找到表格起始标志！"
+
+#     # 找到表格的结束位置
+#     end_index = content.rfind(table_end)
+#     if end_index == -1 or end_index <= start_index:
+#         return "未找到表格结束标志，或结束标志位置异常！"
+
+#     # 提取表格内容
+#     table_content = content[start_index:end_index + len(table_end)]
+
+#     return table_content
+
 def filter_markdown_table(content: str) -> str:
     """
     从输入内容中提取符合 Markdown 表格格式的部分，并过滤掉异常内容。
+    支持两种表头：
+    1. | 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |
+    2. | 序号 | 中文翻译 | 具体意见 | 内容简述 | 分类 | 改善建议 |
 
     :param content: 原始内容字符串
     :return: 过滤后的 Markdown 表格内容
     """
-    # 定义表格的起始和结束标志
-    table_start = "| 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |"
-    # table_start = "|"
-    table_end = "|"
+    # 支持的表头列表
+    possible_headers = [
+        "| 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |",
+        "| 序号 | 具体意见 | 中文翻译 | 内容简述 | 分类 | 改善建议 |"
+    ]
 
-    # 找到表格的起始位置
-    start_index = content.find(table_start)
+    # 找到匹配的表头
+    start_index = -1
+    matched_header = None
+    for header in possible_headers:
+        idx = content.find(header)
+        if idx != -1:
+            start_index = idx
+            matched_header = header
+            break
+
     if start_index == -1:
         return "未找到表格起始标志！"
 
-    # 找到表格的结束位置
-    end_index = content.rfind(table_end)
-    if end_index == -1 or end_index <= start_index:
-        return "未找到表格结束标志，或结束标志位置异常！"
+    # 表格结束标志（假设最后一行也是以 | 开头）
+    # 这里用 rfind 找到最后一个以 | 开头的行
+    lines = content.splitlines()
+    end_index = -1
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].strip().startswith("|"):
+            end_index = i
+            break
+
+    if end_index == -1:
+        return "未找到表格结束标志！"
 
     # 提取表格内容
-    table_content = content[start_index:end_index + len(table_end)]
+    start_line_index = content[:start_index].count("\n")
+    table_lines = lines[start_line_index:end_index + 1]
 
-    return table_content
+    return "\n".join(table_lines)
+
+
 
 # ai结果保存为md文件
 def save_markdown_to_file(markdown_content: str):
@@ -374,8 +424,15 @@ def markdown_to_excel_with_style(markdown_content: str, excel_file: str = "意�
             for row in ws.iter_rows():
                 ws.row_dimensions[row[0].row].height = 20  # 设置行高为 20
 
+            
+            # 获取原文件所在目录
+            folder_path = os.path.dirname(excel_file)
+
+            # 拼接保存路径（文件名不变）
+            save_path = os.path.join(folder_path, os.path.basename(excel_file))
             # 保存优化后的 Excel 文件
-            wb.save(excel_file)
+            # wb.save(excel_file)
+            wb.save(save_path)
             print(f"Excel 文件已成功保存为: {excel_file}，并应用了样式优化！")
         else:
             print("Markdown 内容中未找到有效的表格！")
@@ -448,8 +505,7 @@ def markdown_to_excel_with_style(markdown_content: str, excel_file: str = "意�
 
 # if __name__ == "__main__":
 #     # access_token = "24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165####"
-#     request_host = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task?" \
-#     "access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165######"
+#     request_host = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task?"
 #     request_host2 = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task/query?access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165"
 
 #     file_path = "Tool3/研发意见_test.pdf" 
