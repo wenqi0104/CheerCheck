@@ -1,8 +1,6 @@
 import os
 import requests
 import base64
-import re
-import json
 import time
 from openai import OpenAI
 from docx import Document
@@ -80,10 +78,6 @@ def fetch_and_clean_markdown(markdown_url):
         if response.status_code == 200:
             # 获取 Markdown 内容
             markdown_content = response.text
-            
-            # 清理 Markdown 内容中的 HTML 标签
-            # clean_markdown_content = re.sub(r'<[^>]*>', '', markdown_content)
-            
             return markdown_content
         else:
             return f"请求失败，状态码：{response.status_code}"
@@ -123,7 +117,7 @@ def call_deepseek_api(markdown_content, manualPrompt):
     """
 
     # 构造 API 请求体
-    # deepseek 接口
+    # deepseek 接口可以使用
     # request_body = {
     #     "model": "deepseek-chat",
     #     # "messages": [
@@ -169,10 +163,6 @@ def call_deepseek_api(markdown_content, manualPrompt):
     
     # chatgpt-5 接口 --- 公司接口
     client = OpenAI(
-        # 加载 .env 文件
-        # load_dotenv()
-        # api_key=os.getenv("TURING_API_KEY"),
-        # base_url=os.getenv("TURING_API_BASE")
         api_key = 'sk-xV3Z9pO357FVd2RYdPjyr5v1V9A92GgdmwUlNudy1He',
         base_url= 'https://live-turing.cn.llm.tcljd.com/api/v1'
     )
@@ -246,34 +236,6 @@ def excel_to_markdown_with_merged_cells(file_path):
     # 拼接成完整的 Markdown 表格字符串
     markdown_content = "\n".join(markdown_table)
     return markdown_content
-
-# 二次处理markdown内容
-# def filter_markdown_table(content: str) -> str:
-#     """
-#     从输入内容中提取符合 Markdown 表格格式的部分，并过滤掉异常内容。
-
-#     :param content: 原始内容字符串
-#     :return: 过滤后的 Markdown 表格内容
-#     """
-#     # 定义表格的起始和结束标志
-#     table_start = "| 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |"
-#     # table_start = "|"
-#     table_end = "|"
-
-#     # 找到表格的起始位置
-#     start_index = content.find(table_start)
-#     if start_index == -1:
-#         return "未找到表格起始标志！"
-
-#     # 找到表格的结束位置
-#     end_index = content.rfind(table_end)
-#     if end_index == -1 or end_index <= start_index:
-#         return "未找到表格结束标志，或结束标志位置异常！"
-
-#     # 提取表格内容
-#     table_content = content[start_index:end_index + len(table_end)]
-
-#     return table_content
 
 def filter_markdown_table(content: str) -> str:
     """
@@ -439,79 +401,3 @@ def markdown_to_excel_with_style(markdown_content: str, excel_file: str = "意�
 
     except Exception as e:
         print(f"转换文件时发生错误: {e}")
-
-
-
-# 主函数,单元测试用
-# def main(file_path, request_host, request_host2):
- 
-    # Step 1: OCR 识别文件内容    
-    # 拿到task id
-    # response = create_task(request_host, file_path, "")
-    # response_data = response.json()
-    # task_id = response_data["result"]["task_id"]
-    # print('task_id:',task_id)
-    # print(response_data)
-    # print('--------------------------')
-
-    #测试用task_id: 
-    # task_id = 'task-yjSerT5twFZgcflRKk22gi3TQGZ0dWhp'
-    # task_id = 'task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1'
-    
-
-    # # 用task id 拿markdown url
-    # response2 = query_task(request_host2, task_id)
-    # response2_data = response2.json()
-    # markdown_url = response2_data["result"]["markdown_url"]
-    # print("markdown_url:",markdown_url)
-    # print(response2_data)
-    # print('--------------------------')
-
-    # # 测试mk_url
-    # # markdown_url = "https://xmind-parser.bj.bcebos.com/cloud/parseResult//task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1/file-HuQsMyfHtpEaByf7m8OTR7e1wnUPHwjr.md?authorization=bce-auth-v1%2FALTAK7IDj758EUbA1igu04rHAh%2F2025-07-23T03%3A10%3A01Z%2F259200%2F%2F35e638c3415d3daf333486e789e73b2968e887e6a8397d0ac5f2278851ed63e0"
-    
-    # # python 处理markdown link转存为markdown内容
-    # clean_markdown_content = fetch_and_clean_markdown(markdown_url) 
-    # print('等待结果生成中：')
-
-    # # Step 2: 表格内容分发给Deepseek生成结果
-    # table_result = call_deepseek_api(clean_markdown_content)
-    # if table_result:
-    #     print('--------------------------------------')
-    #     print("表格结果:",table_result)
-    #     print('--------------------------------------')
-    # else:
-    #     print("未能生成表格结果。")
-
-    # Excel文件处理：
-    # excel_path = '/Users/keyeee/develop/CheerCheck/Tool3/dataset.xlsx'  # Replace with your .docx file path
-    # raw_text = excel_to_markdown_with_merged_cells(excel_path)
-
-    # print('------------>等待结果生成中：')
-    # table_result = call_deepseek_api(raw_text)
-    # if table_result:
-    #     print('--------------------------------------')
-    #     print(table_result)
-    #     print('--------------------------------------')
-    #     filtered_table = filter_markdown_table(table_result)
-    #     print("表格结果:",filtered_table)
-    #     # 调用方法保存文件
-    #     save_markdown_to_file(filtered_table)
-    #     markdown_to_excel_with_style(filtered_table)
-    #     print('--------------------------------------')
-    # else:
-    #     print("未能生成表格结果。")
-
-
-# if __name__ == "__main__":
-#     # access_token = "24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165####"
-#     request_host = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task?"
-#     request_host2 = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task/query?access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165"
-
-#     file_path = "Tool3/研发意见_test.pdf" 
-#     # task_id = 'task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1'
-
-#     main(file_path, request_host, request_host2)
-
-#     GPT_host = sk-xV3Z9pO357FVd2RYdPjyr5v1V9A92GgdmwUlNudy1He
-#     GPT_host_name = api-key-20250812104804

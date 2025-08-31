@@ -6,6 +6,7 @@ import json
 import time
 from openai import OpenAI
 from docx import Document
+import time
 from openpyxl import load_workbook
 import pandas as pd
 from openpyxl import load_workbook
@@ -361,25 +362,28 @@ def main(file_path, request_host, request_host2):
 
     #测试用task_id: 
     # task_id = 'task-yjSerT5twFZgcflRKk22gi3TQGZ0dWhp'
-    task_id = 'task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1'
+    task_id = 'task-00z8TXhnalk5nJeiOOLFKO5drY0PmRXc'
+
+    # 等待task_id 相应
+    time.sleep(5)
     
 
     # # 用task id 拿markdown url
-    # response2 = query_task(request_host2, task_id)
-    # response2_data = response2.json()
-    # markdown_url = response2_data["result"]["markdown_url"]
-    # print("markdown_url:",markdown_url)
-    # print(response2_data)
-    # print('--------------------------')
+    response2 = query_task(request_host2, task_id)
+    response2_data = response2.json()
+    markdown_url = response2_data["result"]["markdown_url"]
+    print("markdown_url:",markdown_url)
+    print(response2_data)
+    print('--------------------------')
 
-    # # 测试mk_url
-    # # markdown_url = "https://xmind-parser.bj.bcebos.com/cloud/parseResult//task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1/file-HuQsMyfHtpEaByf7m8OTR7e1wnUPHwjr.md?authorization=bce-auth-v1%2FALTAK7IDj758EUbA1igu04rHAh%2F2025-07-23T03%3A10%3A01Z%2F259200%2F%2F35e638c3415d3daf333486e789e73b2968e887e6a8397d0ac5f2278851ed63e0"
+    # 测试mk_url
+    # markdown_url = "https://xmind-parser.bj.bcebos.com/cloud/parseResult//task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1/file-HuQsMyfHtpEaByf7m8OTR7e1wnUPHwjr.md?authorization=bce-auth-v1%2FALTAK7IDj758EUbA1igu04rHAh%2F2025-07-23T03%3A10%3A01Z%2F259200%2F%2F35e638c3415d3daf333486e789e73b2968e887e6a8397d0ac5f2278851ed63e0"
     
-    # # python 处理markdown link转存为markdown内容
+    # python 处理markdown link转存为markdown内容
     # clean_markdown_content = fetch_and_clean_markdown(markdown_url) 
     # print('等待结果生成中：')
 
-    # # Step 2: 表格内容分发给Deepseek生成结果
+    # Step 2: 表格内容分发给Deepseek生成结果
     # table_result = call_deepseek_api(clean_markdown_content)
     # if table_result:
     #     print('--------------------------------------')
@@ -389,32 +393,32 @@ def main(file_path, request_host, request_host2):
     #     print("未能生成表格结果。")
 
     # Excel文件处理：
-    excel_path = '/Users/keyeee/develop/CheerCheck/Tool3/dataset.xlsx'  # Replace with your .docx file path
-    md_table = excel_to_markdown_with_merged_cells(excel_path)
+    # excel_path = '/Users/keyeee/develop/CheerCheck/Tool3/dataset.xlsx'  # Replace with your .docx file path
+    # md_table = excel_to_markdown_with_merged_cells(excel_path)
 
-    print('------------>等待结果生成中：')
-    table_result = call_deepseek_api(md_table)
-    if table_result:
-        print('--------------------------------------')
-        print(table_result)
-        print('--------------------------------------')
-        filtered_table = filter_markdown_table(table_result)
-        print("表格结果:",filtered_table)
-        # 调用方法保存文件
-        save_markdown_to_file(filtered_table)
-        markdown_to_excel_with_style(filtered_table)
-        print('--------------------------------------')
-    else:
-        print("未能生成表格结果。")
+    # print('------------>等待结果生成中：')
+    # table_result = call_deepseek_api(md_table)
+    # if table_result:
+    #     print('--------------------------------------')
+    #     print(table_result)
+    #     print('--------------------------------------')
+    #     filtered_table = filter_markdown_table(table_result)
+    #     print("表格结果:",filtered_table)
+    #     # 调用方法保存文件
+    #     save_markdown_to_file(filtered_table)
+    #     markdown_to_excel_with_style(filtered_table)
+    #     print('--------------------------------------')
+    # else:
+    #     print("未能生成表格结果。")
 
 # 示例调用
 if __name__ == "__main__":
     # access_token = "24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165####"
     request_host = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task?" \
-    "access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165######"
-    request_host2 = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task/query?access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165"
+    "access_token=24.ee7388de00cf5c7d509a0b699e8d0ee6.2592000.1758626382.282335-119570165"
+    request_host2 = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task/query?access_token=24.ee7388de00cf5c7d509a0b699e8d0ee6.2592000.1758626382.282335-119570165"
 
-    file_path = "Tool3/研发意见_test.pdf" 
+    file_path = "/Users/keyeee/develop/CheerCheck/Tool2/研发意见_test.pdf" 
     # task_id = 'task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1'
 
     main(file_path, request_host, request_host2)

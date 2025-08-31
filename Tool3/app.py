@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, jsonify
 import os
 from werkzeug.utils import secure_filename
 from utils import backend_methods  # 假设您把处理逻辑放在这里
+import time
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -28,37 +29,6 @@ def process_data():
 
     # 临时存储文本数据（用于AI处理）
     raw_text = ""
-
-    # if data_source == 'url':
-    #     url = data.get('url')
-    #     if not url:
-    #         return jsonify({'error': 'URL 不能为空'}), 400
-    #     # 调用您已有的方法抓取网页评论（示例）
-    #     raw_text = backend_methods.scrape_comments_from_url(url)
-
-    # elif data_source == 'file':
-    #     if 'file' not in request.files:
-    #         return jsonify({'error': '未上传文件'}), 400
-    #     file = request.files['file']
-    #     if file.filename == '':
-    #         return jsonify({'error': '未选择文件'}), 400
-    #     if file and allowed_file(file.filename):
-
-    #         # 这里是保存文件的
-    #         filename = secure_filename(file.filename)
-    #         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    #         file.save(filepath)
-    #         # 输入源文件处理
-    #         raw_text = backend_methods.excel_to_markdown_with_merged_cells(filepath)
-
-    #         # 可选：处理完删除临时文件
-    #         os.remove(filepath)
-
-    #     else:
-    #         return jsonify({'error': '不支持的文件类型'}), 400
-
-    # else:
-    #     return jsonify({'error': '无效的数据来源'}), 400
 
     if data_source == 'url':
         url = data.get('url')
@@ -89,21 +59,27 @@ def process_data():
 
                 elif file_ext == 'pdf':
                     # PDF 处理流程
-                    request_host = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task?"
-                    request_host2 = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task/query?access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165"
-
+                    request_host = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task?" \
+                    "access_token=24.ee7388de00cf5c7d509a0b699e8d0ee6.2592000.1758626382.282335-119570165"
+                    request_host2 = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task/query?access_token=24.ee7388de00cf5c7d509a0b699e8d0ee6.2592000.1758626382.282335-119570165"
                     # Step 1: OCR 识别文件内容
                     response = backend_methods.create_task(request_host, filepath, "")
                     response_data = response.json()
                     if "result" not in response_data or "task_id" not in response_data["result"]:
                         return jsonify({'error': 'OCR 任务创建失败'}), 500
-                    task_id = response_data["result"]["task_id"]
-                    print('task_id:', task_id)
+                    task_id = str(response_data["result"]["task_id"])
+                    print('----------------')
+                    print('task_id:', task_id, type(task_id))
+                    print('---------------------------')
+                    # 等待task_id 相应
+                    time.sleep(5)
 
                     # Step 2: 用 task_id 获取 markdown_url
                     response2 = backend_methods.query_task(request_host2, task_id)
                     response2_data = response2.json()
                     if "result" not in response2_data or "markdown_url" not in response2_data["result"]:
+                        print('error! with response2:', response2)
+                        print('error! with response2_data:', response2_data)
                         return jsonify({'error': '未获取到 markdown_url'}), 500
                     markdown_url = response2_data["result"]["markdown_url"]
                     print("markdown_url:", markdown_url)
