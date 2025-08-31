@@ -1,8 +1,6 @@
 import os
 import requests
 import base64
-import re
-import json
 import time
 from openai import OpenAI
 from docx import Document
@@ -12,8 +10,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, Border, Side, Alignment, PatternFill
 from dotenv import load_dotenv
 
-# 加载 .env 文件
-load_dotenv()
+
 
 # 文心一言文档解析模型：https://ai.baidu.com/ai-doc/OCR/Klxag8wiy
 # 1.提交请求，结果会输出在json中，获取json里的result.task_id
@@ -81,10 +78,6 @@ def fetch_and_clean_markdown(markdown_url):
         if response.status_code == 200:
             # 获取 Markdown 内容
             markdown_content = response.text
-            
-            # 清理 Markdown 内容中的 HTML 标签
-            # clean_markdown_content = re.sub(r'<[^>]*>', '', markdown_content)
-            
             return markdown_content
         else:
             return f"请求失败，状态码：{response.status_code}"
@@ -116,14 +109,15 @@ def call_deepseek_api(markdown_content, manualPrompt):
     5. 如果没有尖锐问题，可以依照满意度分析列出最低满意度的那些意见。
     6. 输出格式要求：
         - 严格按照以下格式：
-            | 序号 | 具体意见 | 内容简述 | 分类 ｜ 改善建议 |
+            | 序号 | 具体意见 | 中文翻译 | 内容简述 | 分类 ｜ 改善建议 |
             其中，序号是指对应在原文中的意见序号，具体意见要严格列出文档中的具体意见。
-        - markdown表格中最后一行给出分析总结，分析输入的整体意见内容的数据特点，比如：常规问题占比、尖锐问题占比、高频意见、各类流程类型等，直接列在最后一行。
+            仅当源数据为外语是添加此列，将“具体意见”翻译为中文。
+        - 表格中最后一行给出分析总结，分析输入的整体意见内容的数据特点，比如：常规问题占比、尖锐问题占比、高频意见、各类流程类型等，直接列在最后一行。
     7. 仅给出markdown的内容，结果本身就是markdown格式，不用额外的解释说明。
     """
 
     # 构造 API 请求体
-    # deepseek 接口
+    # deepseek 接口可以使用
     # request_body = {
     #     "model": "deepseek-chat",
     #     # "messages": [
@@ -169,12 +163,13 @@ def call_deepseek_api(markdown_content, manualPrompt):
     
     # chatgpt-5 接口 --- 公司接口
     client = OpenAI(
-        api_key=os.getenv("TURING_API_KEY"),
-        base_url=os.getenv("TURING_API_BASE")
+        api_key = 'sk-xV3Z9pO357FVd2RYdPjyr5v1V9A92GgdmwUlNudy1He',
+        base_url= 'https://live-turing.cn.llm.tcljd.com/api/v1'
     )
     try:
         response = client.chat.completions.create(
             model="turing/gpt-4o",
+            # model="turing/gpt-5",
             messages=[
                 {"role": "system", "content": "您是一个专业的评论分析助手，面向ODM工厂及研发人员给出的意见。您的输出需要遵循严格的markdown格式规范。"},
                 {"role": "system", "content": f"【基础分析要求】\n{default_prompt}"},
@@ -242,33 +237,54 @@ def excel_to_markdown_with_merged_cells(file_path):
     markdown_content = "\n".join(markdown_table)
     return markdown_content
 
-# 二次处理markdown内容
 def filter_markdown_table(content: str) -> str:
     """
     从输入内容中提取符合 Markdown 表格格式的部分，并过滤掉异常内容。
+    支持两种表头：
+    1. | 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |
+    2. | 序号 | 中文翻译 | 具体意见 | 内容简述 | 分类 | 改善建议 |
 
     :param content: 原始内容字符串
     :return: 过滤后的 Markdown 表格内容
     """
-    # 定义表格的起始和结束标志
-    table_start = "| 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |"
-    # table_start = "|"
-    table_end = "|"
+    # 支持的表头列表
+    possible_headers = [
+        "| 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |",
+        "| 序号 | 具体意见 | 中文翻译 | 内容简述 | 分类 | 改善建议 |"
+    ]
 
-    # 找到表格的起始位置
-    start_index = content.find(table_start)
+    # 找到匹配的表头
+    start_index = -1
+    matched_header = None
+    for header in possible_headers:
+        idx = content.find(header)
+        if idx != -1:
+            start_index = idx
+            matched_header = header
+            break
+
     if start_index == -1:
         return "未找到表格起始标志！"
 
-    # 找到表格的结束位置
-    end_index = content.rfind(table_end)
-    if end_index == -1 or end_index <= start_index:
-        return "未找到表格结束标志，或结束标志位置异常！"
+    # 表格结束标志（假设最后一行也是以 | 开头）
+    # 这里用 rfind 找到最后一个以 | 开头的行
+    lines = content.splitlines()
+    end_index = -1
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i].strip().startswith("|"):
+            end_index = i
+            break
+
+    if end_index == -1:
+        return "未找到表格结束标志！"
 
     # 提取表格内容
-    table_content = content[start_index:end_index + len(table_end)]
+    start_line_index = content[:start_index].count("\n")
+    table_lines = lines[start_line_index:end_index + 1]
 
-    return table_content
+    return "\n".join(table_lines)
+
+
 
 # ai结果保存为md文件
 def save_markdown_to_file(markdown_content: str):
@@ -370,85 +386,18 @@ def markdown_to_excel_with_style(markdown_content: str, excel_file: str = "意�
             for row in ws.iter_rows():
                 ws.row_dimensions[row[0].row].height = 20  # 设置行高为 20
 
+            
+            # 获取原文件所在目录
+            folder_path = os.path.dirname(excel_file)
+
+            # 拼接保存路径（文件名不变）
+            save_path = os.path.join(folder_path, os.path.basename(excel_file))
             # 保存优化后的 Excel 文件
-            wb.save(excel_file)
+            # wb.save(excel_file)
+            wb.save(save_path)
             print(f"Excel 文件已成功保存为: {excel_file}，并应用了样式优化！")
         else:
             print("Markdown 内容中未找到有效的表格！")
 
     except Exception as e:
         print(f"转换文件时发生错误: {e}")
-# 主函数
-def main(file_path, request_host, request_host2):
- 
-    # Step 1: OCR 识别文件内容    
-    # 拿到task id
-    # response = create_task(request_host, file_path, "")
-    # response_data = response.json()
-    # task_id = response_data["result"]["task_id"]
-    # print('task_id:',task_id)
-    # print(response_data)
-    # print('--------------------------')
-
-    #测试用task_id: 
-    # task_id = 'task-yjSerT5twFZgcflRKk22gi3TQGZ0dWhp'
-    task_id = 'task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1'
-    
-
-    # # 用task id 拿markdown url
-    # response2 = query_task(request_host2, task_id)
-    # response2_data = response2.json()
-    # markdown_url = response2_data["result"]["markdown_url"]
-    # print("markdown_url:",markdown_url)
-    # print(response2_data)
-    # print('--------------------------')
-
-    # # 测试mk_url
-    # # markdown_url = "https://xmind-parser.bj.bcebos.com/cloud/parseResult//task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1/file-HuQsMyfHtpEaByf7m8OTR7e1wnUPHwjr.md?authorization=bce-auth-v1%2FALTAK7IDj758EUbA1igu04rHAh%2F2025-07-23T03%3A10%3A01Z%2F259200%2F%2F35e638c3415d3daf333486e789e73b2968e887e6a8397d0ac5f2278851ed63e0"
-    
-    # # python 处理markdown link转存为markdown内容
-    # clean_markdown_content = fetch_and_clean_markdown(markdown_url) 
-    # print('等待结果生成中：')
-
-    # # Step 2: 表格内容分发给Deepseek生成结果
-    # table_result = call_deepseek_api(clean_markdown_content)
-    # if table_result:
-    #     print('--------------------------------------')
-    #     print("表格结果:",table_result)
-    #     print('--------------------------------------')
-    # else:
-    #     print("未能生成表格结果。")
-
-    # Excel文件处理：
-    excel_path = '/Users/keyeee/develop/CheerCheck/Tool3/dataset.xlsx'  # Replace with your .docx file path
-    raw_text = excel_to_markdown_with_merged_cells(excel_path)
-
-    print('------------>等待结果生成中：')
-    table_result = call_deepseek_api(raw_text)
-    if table_result:
-        print('--------------------------------------')
-        print(table_result)
-        print('--------------------------------------')
-        filtered_table = filter_markdown_table(table_result)
-        print("表格结果:",filtered_table)
-        # 调用方法保存文件
-        save_markdown_to_file(filtered_table)
-        markdown_to_excel_with_style(filtered_table)
-        print('--------------------------------------')
-    else:
-        print("未能生成表格结果。")
-
-
-# if __name__ == "__main__":
-#     # access_token = "24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165####"
-#     request_host = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task?" \
-#     "access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165######"
-#     request_host2 = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task/query?access_token=24.f8181834e0100bf1ca4ee64ed17b9950.2592000.1755831652.282335-119570165"
-
-#     file_path = "Tool3/研发意见_test.pdf" 
-#     # task_id = 'task-Czn4Kc4UVwgH7tSP6F7g4n9CNDx50yH1'
-
-#     main(file_path, request_host, request_host2)
-
-#     GPT_host = sk-xV3Z9pO357FVd2RYdPjyr5v1V9A92GgdmwUlNudy1He
-#     GPT_host_name = api-key-20250812104804
