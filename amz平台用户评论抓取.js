@@ -73,6 +73,7 @@
 
 | 列名 | 说明 |
 |------|------|
+| 序号 | 自然编号 |
 | 评论标题 | 评论的标题（支持多语言，优先原文） |
 | 评论内容 | 评论的正文内容 |
 | 评论日期 | 格式化为 `YYYY.M.D` |
@@ -313,7 +314,12 @@
             alert('没有可导出的评论，请先保存评论数据！');
             return;
         }
-        const ws = XLSX.utils.json_to_sheet(allReviews);
+        // 给每条评论加序号
+        const reviewsWithIndex = allReviews.map((r, i) => ({
+            序号: i + 1,
+            ...r
+        }));
+        const ws = XLSX.utils.json_to_sheet(reviewsWithIndex);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, '评论数据');
         const filename = `reviews_${getTimestamp()}.xlsx`;

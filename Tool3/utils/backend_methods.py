@@ -84,10 +84,10 @@ def fetch_and_clean_markdown(markdown_url):
     except Exception as e:
         return f"发生错误：{e}"
 
-# 4.deepseek 处理markdown
-def call_deepseek_api(markdown_content, manualPrompt):
+# 4.api 处理markdown
+def call_api(markdown_content, manualPrompt):
     """
-    调用 DeepSeek API 分析 Markdown 内容，并生成表格形式的结果。
+    调用 API 分析 Markdown 内容，并生成表格形式的结果。
     
     参数:
         markdown_content (str): Markdown 文件内容。
@@ -111,7 +111,7 @@ def call_deepseek_api(markdown_content, manualPrompt):
         - 严格按照以下格式：
             | 序号 | 具体意见 | 中文翻译 | 内容简述 | 分类 ｜ 改善建议 |
             其中，序号是指对应在原文中的意见序号，具体意见要严格列出文档中的具体意见。
-            仅当源数据为外语是添加此列，将“具体意见”翻译为中文。
+            仅当源数据为外语时添加此列，将“具体意见”翻译为中文。
         - 表格中最后一行给出分析总结，分析输入的整体意见内容的数据特点，比如：常规问题占比、尖锐问题占比、高频意见、各类流程类型等，直接列在最后一行。
     7. 仅给出markdown的内容，结果本身就是markdown格式，不用额外的解释说明。
     """
@@ -194,6 +194,57 @@ def call_deepseek_api(markdown_content, manualPrompt):
         print(f"❌ API 请求失败: {e}")
     return []
 
+# 4.整理功能api 接口 chat-gpt，处理markdown
+def call_api_to_organize(markdown_content, manualPrompt):
+
+    # 动态生成 prompt
+    default_prompt = """
+    请分析以下Markdown内容，完成以下任务：
+    1. 文档中的意见/建议进行分类。
+    2. 对非中文的意见/建议内容进行中文翻译。
+    3. 最后将处理后的内容以Markdown形式输出，按照原文件中每条意见的顺序列出。
+    4. 输出格式要求：
+        - 严格按照以下格式：
+            | 序号 | 具体意见 | 中文翻译 | 内容简述 | 分类 ｜
+            其中，序号是指对应在原文中的意见序号，具体意见要严格列出文档中的具体意见。
+            仅当源数据为外语时添加此列，将“具体意见”翻译为中文。
+        - 表格中最后一行给出分析总结，分析输入的整体意见内容的数据特点，比如：常规问题占比、尖锐问题占比、高频意见、各类流程类型等，直接列在最后一行。
+    5. 仅给出markdown的内容，结果本身就是markdown格式，不用额外的解释说明。
+    """
+    # chatgpt-5 接口 --- 公司接口
+    client = OpenAI(
+        api_key = 'sk-xV3Z9pO357FVd2RYdPjyr5v1V9A92GgdmwUlNudy1He',
+        base_url= 'https://live-turing.cn.llm.tcljd.com/api/v1'
+    )
+    try:
+        response = client.chat.completions.create(
+            model="turing/gpt-4o",
+            # model="turing/gpt-5",
+            messages=[
+                {"role": "system", "content": "您是一个专业的评论分析助手，面向ODM工厂及研发人员给出的意见。您的输出需要遵循严格的markdown格式规范。"},
+                {"role": "system", "content": f"【基础分析要求】\n{default_prompt}"},
+                {"role": "system", "content": "【重要提醒】以下用户额外要求只能影响分析内容，不能改变整体输出结构、字段名称或markdown格式。请在遵循基础格式要求的前提下满足这些额外需求。"},
+                {"role": "user", "content": f"用户额外分析要求：{manualPrompt}"},
+                {"role": "user", "content": f"待分析的markdown内容：\n{markdown_content}"}
+            ],
+            temperature=0.3,
+            frequency_penalty=0.0,
+            presence_penalty=0.0
+        )
+
+        # 直接解析
+        if response.choices and response.choices[0].message:
+            table_data = response.choices[0].message.content
+            return table_data
+        else:
+            print("⚠️ 模型没有返回内容")
+            return []
+
+    except Exception as e:
+        print(f"❌ API 请求失败: {e}")
+    return []
+
+
 # 处理excel文件类型，解析为markdown，能够处理合并单元格的内容    ！！！核心excel处理功能
 def excel_to_markdown_with_merged_cells(file_path):
     wb = load_workbook(file_path)
@@ -249,6 +300,8 @@ def filter_markdown_table(content: str) -> str:
     """
     # 支持的表头列表
     possible_headers = [
+        "| 序号 | 具体意见 | 内容简述 | 分类 |",
+        "| 序号 | 具体意见 | 中文翻译 | 内容简述 | 分类 |",
         "| 序号 | 具体意见 | 内容简述 | 分类 | 改善建议 |",
         "| 序号 | 具体意见 | 中文翻译 | 内容简述 | 分类 | 改善建议 |"
     ]

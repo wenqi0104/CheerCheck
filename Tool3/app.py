@@ -102,7 +102,108 @@ def process_data():
     try:
         # 调接口处理md的raw data
         print('------------>等待结果生成中：')
-        table_result = backend_methods.call_deepseek_api(raw_text,manualPrompt)
+        table_result = backend_methods.call_api(raw_text,manualPrompt)
+
+        if table_result:
+            print('--------------------------------------')
+            print('manualPrompt:',manualPrompt)
+            print('--------------------------------------')
+            filtered_table = backend_methods.filter_markdown_table(table_result)
+            print("表格结果:",filtered_table)
+            # 调用方法保存文件
+            backend_methods.save_markdown_to_file(filtered_table)
+            backend_methods.markdown_to_excel_with_style(filtered_table)
+            print('--------------------------------------')
+        else:
+            print("未能生成表格结果。")
+
+        return jsonify({'suggestions': filtered_table})
+    except Exception as e:
+        return jsonify({'error': f'生成建议失败: {str(e)}'}), 500
+
+# 整理数据（翻译+分类），实现逻辑是pdf/excel解析为markdown，call api处理结果
+@app.route('/organize', methods=['POST'])
+def organize_data():
+    data = request.form
+    data_source = data.get('dataSource')
+    manualPrompt = data.get('prompt', '').strip()
+
+    # 临时存储文本数据（用于AI处理）
+    raw_text = ""
+
+    if data_source == 'url':
+        url = data.get('url')
+        if not url:
+            return jsonify({'error': 'URL 不能为空'}), 400
+        # 调用您已有的方法抓取网页评论（示例）
+        raw_text = backend_methods.scrape_comments_from_url(url)
+
+    elif data_source == 'file':
+        if 'file' not in request.files:
+            return jsonify({'error': '未上传文件'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': '未选择文件'}), 400
+
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+
+            file_ext = filename.rsplit('.', 1)[1].lower()
+
+            try:
+                if file_ext in ['xls', 'xlsx']:
+                    # Excel 处理流程
+                    raw_text = backend_methods.excel_to_markdown_with_merged_cells(filepath)
+
+                elif file_ext == 'pdf':
+                    # PDF 处理流程
+                    request_host = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task?" \
+                    "access_token=24.ee7388de00cf5c7d509a0b699e8d0ee6.2592000.1758626382.282335-119570165"
+                    request_host2 = "https://aip.baidubce.com/rest/2.0/brain/online/v2/parser/task/query?access_token=24.ee7388de00cf5c7d509a0b699e8d0ee6.2592000.1758626382.282335-119570165"
+                    # Step 1: OCR 识别文件内容
+                    response = backend_methods.create_task(request_host, filepath, "")
+                    response_data = response.json()
+                    if "result" not in response_data or "task_id" not in response_data["result"]:
+                        return jsonify({'error': 'OCR 任务创建失败'}), 500
+                    task_id = str(response_data["result"]["task_id"])
+                    print('----------------')
+                    print('task_id:', task_id, type(task_id))
+                    print('---------------------------')
+                    # 等待task_id 相应
+                    time.sleep(5)
+
+                    # Step 2: 用 task_id 获取 markdown_url
+                    response2 = backend_methods.query_task(request_host2, task_id)
+                    response2_data = response2.json()
+                    if "result" not in response2_data or "markdown_url" not in response2_data["result"]:
+                        print('error! with response2:', response2)
+                        print('error! with response2_data:', response2_data)
+                        return jsonify({'error': '未获取到 markdown_url'}), 500
+                    markdown_url = response2_data["result"]["markdown_url"]
+                    print("markdown_url:", markdown_url)
+
+                    # Step 3: 下载并清洗 markdown 内容
+                    raw_text = backend_methods.fetch_and_clean_markdown(markdown_url)
+
+                else:
+                    return jsonify({'error': '不支持的文件类型'}), 400
+
+            finally:
+                # 确保删除临时文件
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+
+        else:
+            return jsonify({'error': '不支持的文件类型'}), 400
+
+    # 调用您的 AI 方法生成建议
+    try:
+        # 调接口处理md的raw data
+        print('------------>等待结果生成中：')
+        table_result = backend_methods.call_api_to_organize(raw_text,manualPrompt)
 
         if table_result:
             print('--------------------------------------')
