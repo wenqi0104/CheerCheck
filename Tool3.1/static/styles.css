@@ -1,0 +1,252 @@
+/* 全局样式 */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    color: #343a40;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    overflow-x: hidden;
+}
+
+.main-container {
+    min-height: 100vh;
+    padding-bottom: 60px; /* 为footer留出空间 */
+}
+
+/* 头部样式 - 科幻动态背景 */
+.gradient-header {
+    position: relative;
+    overflow: hidden;
+    padding: 6rem 0 !important;
+    margin-bottom: 2rem;
+    color: white;
+    isolation: isolate;
+}
+
+/* 动态背景效果 */
+.gradient-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    z-index: -1;
+    opacity: 0.9;
+}
+
+/* 科幻网格效果 */
+.gradient-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 10% 10%, rgba(0, 150, 255, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 90% 10%, rgba(255, 0, 150, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 90% 90%, rgba(0, 255, 150, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 10% 90%, rgba(255, 150, 0, 0.1) 0%, transparent 20%);
+    z-index: -1;
+    animation: sciFiGrid 20s linear infinite;
+}
+
+.header-content {
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+header h1 {
+    font-weight: 700;
+    letter-spacing: 2px;
+    animation: textGlow 2s ease-in-out infinite alternate;
+}
+
+/* 卡片样式 */
+.card {
+    border: none;
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+    font-weight: 600;
+    background: linear-gradient(45deg, #4b6cb7, #3a56a0);
+    color: white;
+    border: none;
+}
+
+/* 表单控件样式 */
+.form-control, .form-select {
+    border-radius: 8px;
+    padding: 10px 15px;
+    border: 1px solid #ced4da;
+    transition: all 0.3s;
+    font-size: 0.95rem;
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4b6cb7;
+    box-shadow: 0 0 0 0.25rem rgba(75, 108, 183, 0.25);
+}
+
+.input-group-text {
+    border-radius: 8px 0 0 8px;
+    background-color: rgba(248, 249, 250, 0.9);
+    padding: 10px 15px;
+    border: 1px solid #ced4da;
+}
+
+/* 按钮样式 */
+.btn-primary {
+    background-color: #4b6cb7;
+    border-color: #4b6cb7;
+    border-radius: 8px;
+    padding: 10px 25px;
+    font-weight: 600;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary:hover {
+    background-color: #3a56a0;
+    border-color: #3a56a0;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(58, 86, 160, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transition: 0.5s;
+}
+
+.btn-primary:hover::before {
+    left: 100%;
+}
+
+/* 结果区域样式 */
+#resultsContent {
+    background-color: rgba(248, 249, 250, 0.9);
+    border-radius: 8px;
+    padding: 20px;
+    min-height: 300px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* 动画效果 */
+@keyframes gradientBG {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes sciFiGrid {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+    100% {
+        transform: rotate(360deg) scale(1);
+    }
+}
+
+@keyframes textGlow {
+    from {
+        text-shadow: 0 0 5px rgba(75, 108, 183, 0.5),
+                     0 0 10px rgba(75, 108, 183, 0.3),
+                     0 0 15px rgba(75, 108, 183, 0.2);
+    }
+    to {
+        text-shadow: 0 0 10px rgba(75, 108, 183, 0.8),
+                     0 0 20px rgba(75, 108, 183, 0.6),
+                     0 0 30px rgba(75, 108, 183, 0.4);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadein {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* 加载动画 */
+.spinner-border {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: #4b6cb7;
+}
+
+/* 页脚样式 */
+footer {
+    font-size: 0.9rem;
+    background-color: rgba(248, 249, 250, 0.9) !important;
+}
+
+/* markdown预览表格样式 */
+#resultsContent table {
+    background-color: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+}
+#resultsContent th {
+    background-color: #f8f9fa;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .main-container {
+        padding-top: 15px;
+    }
+    
+    .gradient-header {
+        padding: 4rem 0 !important;
+        margin-bottom: 1.5rem;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    .card {
+        margin-bottom: 15px;
+    }
+}
+
